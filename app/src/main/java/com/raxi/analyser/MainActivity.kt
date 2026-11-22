@@ -30,21 +30,36 @@ private val Muted = Color(0xFFB9A6A6)
 private val Green = Color(0xFF20B86A)
 
 class MainActivity : ComponentActivity() {
+    private var settingsOpened = false
+    private var overlayLaunched = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = Neon, background = Bg, surface = Panel)) {
                 MainScreen(
                     onFloatingClick = {
-                        if (Settings.canDrawOverlays(this)) {
-                            startService(Intent(this, FlashyOverlayService::class.java))
-                        } else {
-                            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-                        }
+                        if (Settings.canDrawOverlays(this)) launchOverlayAndClose() else openOverlaySettings()
                     }
                 )
             }
         }
+    }
+    override fun onResume() {
+        super.onResume()
+        if (Settings.canDrawOverlays(this)) launchOverlayAndClose() else if (!settingsOpened) openOverlaySettings()
+    }
+
+    private fun openOverlaySettings() {
+        settingsOpened = true
+        startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+    }
+
+    private fun launchOverlayAndClose() {
+        if (overlayLaunched) return
+        overlayLaunched = true
+        startService(Intent(this, FlashyOverlayService::class.java))
+        finish()
     }
 }
 
@@ -72,6 +87,14 @@ private fun FlashyMark(modifier: Modifier = Modifier) {
 @Composable
 private fun MainScreen(onFloatingClick: () -> Unit) {
     var number by remember { mutableStateOf<Int?>(null) }
+    var verifying by remember { mutableStateOf(false) }
+    LaunchedEffect(verifying) {
+        if (verifying) {
+            kotlinx.coroutines.delay(2000)
+            number = Random.nextInt(0, 10)
+            verifying = false
+        }
+    }
     var session by remember { mutableStateOf(System.currentTimeMillis().toString().takeLast(8)) }
     val n = number
     val sizeLabel = n?.let { if (it <= 4) "SMALL" else "BIG" } ?: "—"
@@ -102,13 +125,13 @@ private fun MainScreen(onFloatingClick: () -> Unit) {
             Column(Modifier.fillMaxWidth().background(Brush.radialGradient(listOf(Color(0xFF5B1111), Color(0xFF170909))), RoundedCornerShape(22.dp)).padding(vertical = 24.dp, horizontal = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("RANDOMLY GENERATED", color = Muted, fontSize = 11.sp, letterSpacing = 1.5.sp)
                 Spacer(Modifier.height(8.dp))
-                Text(n?.toString() ?: "—", color = resultColour, fontSize = 76.sp, fontWeight = FontWeight.Black)
+                Text(if (verifying) "•••" else (n?.toString() ?: "—"), color = resultColour, fontSize = 76.sp, fontWeight = FontWeight.Black)
                 Text(if (n == null) "PRESS EXECUTE" else "$sizeLabel  •  $colourLabel", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(18.dp))
-            Button(onClick = { number = Random.nextInt(0, 10); session = System.currentTimeMillis().toString().takeLast(8) },
+            Button(onClick = { if (!verifying) { number = null; verifying = true; session = System.currentTimeMillis().toString().takeLast(8) } },
                 modifier = Modifier.fillMaxWidth().height(58.dp), shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = Neon)) {
-                Text("EXECUTE", color = Color.White, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 17.sp)
+                Text(if (verifying) "VERIFYING DEMO • 2 SEC" else "EXECUTE", color = Color.White, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 17.sp)
             }
             Spacer(Modifier.height(12.dp))
             OutlinedButton(onClick = onFloatingClick, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp)) {
