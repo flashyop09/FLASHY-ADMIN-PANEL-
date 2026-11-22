@@ -150,6 +150,14 @@ private fun MainScreen(onFloatingClick: () -> Unit) {
 fun FloatingPanel(onClose: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     var number by remember { mutableStateOf<Int?>(null) }
+    var verifying by remember { mutableStateOf(false) }
+    LaunchedEffect(verifying) {
+        if (verifying) {
+            kotlinx.coroutines.delay(2000)
+            number = Random.nextInt(0, 10)
+            verifying = false
+        }
+    }
     val n = number
     Column(horizontalAlignment = Alignment.End) {
         if (expanded) {
@@ -163,7 +171,8 @@ fun FloatingPanel(onClose: () -> Unit) {
                 Text(n?.toString() ?: "—", color = if ((n ?: 0) % 2 == 0) Neon else Green, fontSize = 54.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Text(n?.let { "${if (it <= 4) "SMALL" else "BIG"} • ${when(it) { 0 -> "RED + VIOLET"; 5 -> "GREEN + VIOLET"; 1,3,7,9 -> "GREEN"; else -> "RED" }}" } ?: "Tap execute to generate", color = Color.White, fontSize = 12.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Spacer(Modifier.height(10.dp))
-                Button(onClick = { number = Random.nextInt(0, 10) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Neon)) { Text("EXECUTE") }
+                Button(onClick = { if (!verifying) { number = null; verifying = true } }, enabled = !verifying, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Neon)) { Text(if (verifying) "VERIFYING DEMO • 2 SEC" else "EXECUTE") }
+                if (verifying) { LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = Neon) }
                 Text("Random demo output — not a game prediction.", color = Muted, fontSize = 9.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
             }
             Spacer(Modifier.height(10.dp))
