@@ -9,6 +9,7 @@ import android.view.WindowManager
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.setContent
 import androidx.compose.ui.platform.ViewCompositionStrategy
 
 class FlashyOverlayService : Service() {
